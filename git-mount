@@ -14,7 +14,7 @@ class OptparseMount
     @options.branch = 'gh-pages'
     @options.user = `git config --get github.user`.chomp
     @options.verbose = false
-    @options.repo = $1 if `git remote show origin` =~ /Fetch URL: (git@github.com:(.+?)\.git)/
+    @options.repo = `git config --get remote.origin.url`
   
     @opts = OptionParser.new do |opts|
       opts.banner = "Usage: git-mount [options] local/path"
