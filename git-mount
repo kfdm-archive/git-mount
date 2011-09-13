@@ -11,10 +11,10 @@ class OptparseMount
   
   def self.parse(args)
     @options = OpenStruct.new
-    @options.branch = 'gh-pages'
-    @options.user = `git config --get github.user`.chomp
+    @options.branch = 'master'
+    @options.repo = `git config --get remote.origin.url`.chomp
     @options.verbose = false
-    @options.repo = `git config --get remote.origin.url`
+    @options.force = false
   
     @opts = OptionParser.new do |opts|
       opts.banner = "Usage: git-mount [options] local/path"
@@ -58,7 +58,6 @@ class OptparseMount
     
     @options.local = args.pop
     die 'Missing local path' if @options.local == nil
-    die 'Missing GitHub username' if @options.user == ''
     
     @options.local = File.expand_path(@options.local)
     @options.dir = File.dirname(@options.local)
@@ -70,20 +69,17 @@ end
 options = OptparseMount.parse(ARGV)
 
 if options.verbose
-  puts "Name: #{$0}"
-  puts "GitHub: #{options.user} "
-  puts "Branch: #{options.branch}"
-  puts "Repo: #{options.repo}"
-  puts "Local: #{options.local}"
+  puts "Command: #{$0}"
+  puts "Repo:    #{options.repo}"
+  puts "Branch:  #{options.branch}"
+  puts "Mount:   #{options.local}"
   puts
 end
-
-exit if options.dryrun
 
 # Remove target directory
 if File.exists? options.local
   puts "Removing old directory #{options.local}" if options.verbose
-  FileUtils::rm_rf(options.local)
+  FileUtils::rm_rf(options.local) if not options.dryrun
 end
 
 # Make sure base directory exists
@@ -92,7 +88,6 @@ if not File.exists? options.dir
 end
 
 # Clone branch
-puts `git clone --branch #{options.branch} #{options.repo} #{options.local}`
-
-
-
+command = "git clone --branch #{options.branch} #{options.repo} #{options.local}"
+puts command if options.verbose
+`#{command}` if not options.dryrun
