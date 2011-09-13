@@ -1,0 +1,53 @@
+#!/usr/bin/env ruby
+require 'optparse'
+require 'ostruct'
+
+class OptparseMount
+  def die message
+    puts message
+    exit 1
+  end
+  
+  def self.parse(args)
+    @options = OpenStruct.new
+    @options.branch = 'gh-pages'
+    @options.user = `git config --get github.user`.chomp
+  
+    @opts = OptionParser.new do |opts|
+      opts.banner = "Usage: git-mount [options] local/path"
+      
+      opts.on("-b", "--branch [BRANCH]", "Branch name") do |branch|
+        @options.branch = branch
+      end
+      
+      opts.on("-r", "--repo [REPO]", "External Repo") do |repo|
+        @options.repo = repo
+      end
+      
+      opts.on_tail("-h", "--help", "Show this message") do
+        puts opts
+        exit
+      end
+    end
+    @opts.parse!(args)
+    
+    if @options.repo.nil?
+      @options.repo = $1 if `git remote show origin` =~ /Fetch URL: (git@github.com:(.+?)\.git)/
+    end
+    
+    @options.local = args.pop
+    die 'Missing local path' if @options.local == nil
+    
+    @options
+  end
+end
+
+options = OptparseMount.parse(ARGV)
+options.die 'Missing GitHub username' if options.user == ''
+puts ARGV
+
+puts "Name: #{$0}"
+puts "GitHub: #{options.user} "
+puts "Branch: #{options.branch}"
+puts "Repo: #{options.repo}"
+puts "Local: #{options.path}"
