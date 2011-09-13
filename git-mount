@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 require 'optparse'
 require 'ostruct'
+require 'fileutils'
 
 class OptparseMount
   def die message
@@ -12,9 +13,28 @@ class OptparseMount
     @options = OpenStruct.new
     @options.branch = 'gh-pages'
     @options.user = `git config --get github.user`.chomp
+    @options.verbose = false
+    @options.repo = $1 if `git remote show origin` =~ /Fetch URL: (git@github.com:(.+?)\.git)/
   
     @opts = OptionParser.new do |opts|
       opts.banner = "Usage: git-mount [options] local/path"
+      
+      opts.on("-f", "--force", "Force mount") do |force|
+        @options.force = true
+      end
+      
+      opts.on("-v", "--verbose") do |verbose|
+        @options.verbose = true
+      end
+      
+      opts.on("-p", "--pages", "Mount GitHub pages") do |pages|
+        @options.branch = 'gh-pages'
+      end
+      
+      opts.on("-w", "--wiki", "Mount GitHub wiki") do |wiki|
+        @options.repo = @options.repo.gsub /\.git$/, '.wiki.git'
+        @options.branch = 'master'
+      end
       
       opts.on("-b", "--branch [BRANCH]", "Branch name") do |branch|
         @options.branch = branch
@@ -24,6 +44,11 @@ class OptparseMount
         @options.repo = repo
       end
       
+      opts.on("-n", "--dryrun", "Dry Run") do |repo|
+        @options.verbose = true
+        @options.dryrun = true
+      end
+      
       opts.on_tail("-h", "--help", "Show this message") do
         puts opts
         exit
@@ -31,23 +56,43 @@ class OptparseMount
     end
     @opts.parse!(args)
     
-    if @options.repo.nil?
-      @options.repo = $1 if `git remote show origin` =~ /Fetch URL: (git@github.com:(.+?)\.git)/
-    end
-    
     @options.local = args.pop
     die 'Missing local path' if @options.local == nil
+    die 'Missing GitHub username' if @options.user == ''
+    
+    @options.local = File.expand_path(@options.local)
+    @options.dir = File.dirname(@options.local)
     
     @options
   end
 end
 
 options = OptparseMount.parse(ARGV)
-options.die 'Missing GitHub username' if options.user == ''
-puts ARGV
 
-puts "Name: #{$0}"
-puts "GitHub: #{options.user} "
-puts "Branch: #{options.branch}"
-puts "Repo: #{options.repo}"
-puts "Local: #{options.path}"
+if options.verbose
+  puts "Name: #{$0}"
+  puts "GitHub: #{options.user} "
+  puts "Branch: #{options.branch}"
+  puts "Repo: #{options.repo}"
+  puts "Local: #{options.local}"
+  puts
+end
+
+exit if options.dryrun
+
+# Remove target directory
+if File.exists? options.local
+  puts "Removing old directory #{options.local}" if options.verbose
+  FileUtils::rm_rf(options.local)
+end
+
+# Make sure base directory exists
+if not File.exists? options.dir
+  puts "Making base directory #{options.dir}" if options.verbose
+end
+
+# Clone branch
+puts `git clone --branch #{options.branch} #{options.repo} #{options.local}`
+
+
+
