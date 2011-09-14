@@ -56,11 +56,10 @@ class OptparseMount
     end
     @opts.parse!(args)
     
-    @options.local = args.pop
-    die 'Missing local path' if @options.local == nil
+    @options.mount = args.shift
+    die 'Missing local path' if @options.mount == nil
     
-    @options.local = File.expand_path(@options.local)
-    @options.dir = File.dirname(@options.local)
+    @options.mount = File.expand_path(@options.mount)
     
     @options
   end
@@ -72,22 +71,17 @@ if options.verbose
   puts "Command: #{$0}"
   puts "Repo:    #{options.repo}"
   puts "Branch:  #{options.branch}"
-  puts "Mount:   #{options.local}"
+  puts "Mount:   #{options.mount}"
   puts
 end
 
 # Remove target directory
-if File.exists? options.local
-  puts "Removing old directory #{options.local}" if options.verbose
-  FileUtils::rm_rf(options.local) if not options.dryrun
-end
-
-# Make sure base directory exists
-if not File.exists? options.dir
-  puts "Making base directory #{options.dir}" if options.verbose
+if options.force and File.exists? options.mount
+  puts "Removing old directory #{options.mount}" if options.verbose
+  FileUtils::rm_rf(options.mount) if not options.dryrun
 end
 
 # Clone branch
-command = "git clone --branch #{options.branch} #{options.repo} #{options.local}"
+command = "git clone --branch #{options.branch} #{options.repo} #{options.mount}"
 puts command if options.verbose
 `#{command}` if not options.dryrun
