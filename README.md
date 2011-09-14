@@ -7,8 +7,15 @@ Mount a repo/branch
 For a Python project on GitHub where we want the generated documentation to be saved under GitHub Pages
 
 ```sh
+# Mount the GitHub pages branch to build/html
+# so that our documentation genrated by sphinx
+# goes in the right place
 git mount --pages build/html
+# Generate our Sphinx docs
 make html
+# Future ideas ?
+# Make it easy to commit and push documentation
+# on the mounted branch
 git mount --commit 'Updated documentation'
 git mount --push
 ```
